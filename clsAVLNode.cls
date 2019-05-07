@@ -19,6 +19,20 @@ Public Userdata
 Public Left As clsAVLNode
 Public Right As clsAVLNode
 
+Function Find_Max_Key_Node() As clsAVLNode
+Dim n As clsAVLNode
+Set n = Me
+Do Until n.Right Is Nothing
+    Set n = n.Right
+Loop
+Set Find_Max_Key_Node = n
+End Function
 
-
-
+Function Find_Min_Key_Node() As clsAVLNode
+Dim n As clsAVLNode
+Set n = Me
+Do Until n.Left Is Nothing
+    Set n = n.Left
+Loop
+Set Find_Min_Key_Node = n
+End Function

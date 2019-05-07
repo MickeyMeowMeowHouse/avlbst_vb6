@@ -13,7 +13,7 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Option Explicit
 
-Private m_RootNode As clsAVLNode
+Public m_RootNode As clsAVLNode
 
 Private Function New_Node(ByVal Key As Long, Optional Userdata) As clsAVLNode
 Set New_Node = New clsAVLNode
@@ -160,24 +160,14 @@ End Function
 
 '找到标签值最大的节点
 Function Find_Max_Key_Node() As clsAVLNode
-Dim n As clsAVLNode
-Set n = m_RootNode
-If n Is Nothing Then Exit Function
-Do Until n.Right Is Nothing
-    Set n = n.Right
-Loop
-Set Find_Max_Key_Node = n
+If m_RootNode Is Nothing Then Exit Function
+Set Find_Max_Key_Node = m_RootNode.Find_Max_Key_Node
 End Function
 
 '找到标签值最小的节点
 Function Find_Min_Key_Node() As clsAVLNode
-Dim n As clsAVLNode
-Set n = m_RootNode
-If n Is Nothing Then Exit Function
-Do Until n.Left Is Nothing
-    Set n = n.Left
-Loop
-Set Find_Min_Key_Node = n
+If m_RootNode Is Nothing Then Exit Function
+Set Find_Min_Key_Node = m_RootNode.Find_Min_Key_Node
 End Function
 
 '在移除节点后保持平衡
@@ -241,10 +231,10 @@ Else
         End If
         Set Temp = Nothing
     Else
-        Set Temp = Find_Min_Key_Node(r.Right)
+        Set Temp = r.Right.Find_Min_Key_Node
         r.Key = Temp.Key
         r.Userdata = Temp.Userdata
-        r.Right = Remove_Recursive(r.Right, Temp.Key)
+        Set r.Right = Remove_Recursive(r.Right, Temp.Key)
     End If
 End If
 
@@ -259,4 +249,64 @@ Sub Remove(ByVal Key As Long)
 Set m_RootNode = Remove_Recursive(m_RootNode, Key)
 End Sub
 
+Private Function CloneNodeRecursive(n As clsAVLNode) As clsAVLNode
+If (n Is Nothing) = False Then
+    Set CloneNodeRecursive = New clsAVLNode
+    CloneNodeRecursive.Key = n.Key
+    CloneNodeRecursive.Userdata = n.Userdata
+    CloneNodeRecursive.Height = n.Height
+    Set CloneNodeRecursive.Left = CloneNodeRecursive(n.Left)
+    Set CloneNodeRecursive.Right = CloneNodeRecursive(n.Right)
+End If
+End Function
 
+'克隆AVL二叉树
+Function Clone() As clsAVLBST
+Set Clone = New clsAVLBST
+Set Clone.m_RootNode = CloneNodeRecursive(m_RootNode)
+End Function
+
+Private Function DefragNodeRecursive(n As clsAVLNode) As Long
+If n Is Nothing Then Exit Function
+
+Dim NewNode As clsAVLNode
+
+If (n.Left Is Nothing) = False Then
+    Set NewNode = New clsAVLNode
+    If ObjPtr(NewNode) < ObjPtr(n.Left) Then
+        NewNode.Key = n.Left.Key
+        NewNode.Height = n.Left.Height
+        NewNode.Userdata = n.Left.Userdata
+        Set NewNode.Left = n.Left.Left
+        Set NewNode.Right = n.Left.Right
+        Set n.Left = NewNode
+        DefragNodeRecursive = 1
+    Else
+        Set NewNode = n.Left
+    End If
+    DefragNodeRecursive = DefragNodeRecursive + DefragNodeRecursive(NewNode.Left)
+    DefragNodeRecursive = DefragNodeRecursive + DefragNodeRecursive(NewNode.Right)
+End If
+
+If (n.Right Is Nothing) = False Then
+    Set NewNode = New clsAVLNode
+    If ObjPtr(NewNode) < ObjPtr(n.Right) Then
+        NewNode.Key = n.Right.Key
+        NewNode.Height = n.Right.Height
+        NewNode.Userdata = n.Right.Userdata
+        Set NewNode.Left = n.Right.Left
+        Set NewNode.Right = n.Right.Right
+        Set n.Right = NewNode
+        DefragNodeRecursive = 1
+    Else
+        Set NewNode = n.Right
+    End If
+    DefragNodeRecursive = DefragNodeRecursive + DefragNodeRecursive(NewNode.Right)
+    DefragNodeRecursive = DefragNodeRecursive + DefragNodeRecursive(NewNode.Right)
+End If
+End Function
+
+'对整棵树进行内存碎片整理过程，用于集中释放的小块内存区域来提升内存分配性能
+Function Defrag() As Long
+Defrag = DefragNodeRecursive(m_RootNode)
+End Function
